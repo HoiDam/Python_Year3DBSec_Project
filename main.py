@@ -21,10 +21,10 @@ class database:
         self.name=name
         self.size="small"
         self.version="12c"
-        self.pns=False              #Primary + Secondary
         self.available_version=[] 
         self.tested_version=[]
         self.risk=[]
+        self.encryption="NA"        
             
     def add_ava_ver(self,version):
         self.available_version.append(version)
@@ -57,18 +57,17 @@ class database:
         print("\n~",self.name,"~")
         print("Service : ", str(self.activate))
         print("Size : ",self.size)
-        print("Current Version : " ,self.version)
-        print("Primary and Secondary Method : " ,self.pns)            
+        print("Current Version : " ,self.version)          
         print("Available Versions : " ,self.available_version)
         print("Tested Versions : " ,self.tested_version)
         print("Risks : " ,self.risk)
+        print("Encryption : ",self.encryption)
 
 
 def game_main():
     funds=1000
     round=1
     total_round=30 #default total round
-    game_time=1 #indicate risk
     was=web_app_ser()
     db=database()
 
@@ -98,4 +97,4 @@ while True:
         break
     
 
-    
+
