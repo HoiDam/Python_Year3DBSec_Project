@@ -1,51 +1,41 @@
 import json
 import os
-class web_app_ser:
-    def __init__(self,name="Web Application Server"):
-        self.activate=True
-        self.name=name
-        self.size="s"
+import numpy as np
+import random
+
+# class web_app_ser:
+#     def __init__(self,name="Web Application Server"):
+#         self.activate=True
+#         self.name=name
+#         self.size="s"
         
-    def upgrade_size(self,size):
-        self.size=size
+#     def upgrade_size(self,size):
+#         self.size=size
 
-    def deactivate(self):
-        self.activate=False
+#     def deactivate(self):
+#         self.activate=False
 
-    def print_detail(self):
-        print("\n~",self.name,"~")
-        print("Service : ", str(self.activate))
-        print("Size : ",self.size)
+#     def print_detail(self):
+#         print("\n~",self.name,"~")
+#         print("Service : ", str(self.activate))
+#         print("Size : ",self.size)
 
 class database:
-    def __init__(self,name="Database"):
+    def __init__(self,version,name="Database"):
         self.activate=True 
         self.name=name
         self.size="s"
-        self.version="12c"
-        self.available_version=[] 
+        self.version=version
         self.tested_version=[]
-        self.risk=[]
         self.encryption="NA" 
         self.duty="all"       
             
-    def add_ava_ver(self,version):
-        self.available_version.append(version)
 
     def add_test_ver(self,version):
         self.tested_version.append(version)
 
-    def add_risk(self,risk):
-        self.risk.append(risk)
-
-    def remove_ava_ver(self,version):
-        self.available_version.pop(version)    
-
     def remove_test_ver(self,version):
         self.tested_version.pop(version)    
-
-    def remove_risk(self,risk):
-        self.risk.pop(risk)       
         
     def upgrade_size(self,size):
         self.size=size
@@ -60,10 +50,8 @@ class database:
         print("\n~",self.name,"~")
         print("Service : ", str(self.activate))
         print("Size : ",self.size)
-        print("Current Version : " ,self.version)          
-        print("Available Versions : " ,self.available_version)
+        print("Current Version : " ,self.version) 
         print("Tested Versions : " ,self.tested_version)
-        print("Risks : " ,self.risk)
         print("Encryption : ",self.encryption)
         print("Duty : " ,self.duty)
 
@@ -71,31 +59,110 @@ def game_main(patch_mapping,risk_mapping):
     
     # print(patch_mapping)
     # print(risk_mapping)
-    funds=1000
-    round=1
+    funds=1000 #initial funds
+    round=1 #initial round
     total_round=30 #default total round
-    was=web_app_ser()
-    db=database()
+    current_risk_level=1 #risk level
+    max_risk_level=len(risk_mapping) #max risk level
+    found_risks=[]
+    current_patch_level=1
+    max_patch_level=len(patch_mapping) #max patch level
+    ava_patches=[]
+    
+    options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
+    
+    db=database("1")
 
-    while round<=total_round:
-        while True:
-            print("Rounds : ", round ,"/",total_round)
-            print("Funds : ",funds)
-            was.print_detail()
-            db.print_detail()
-            print("Enter \"End\" Turn to go to next round.")
-            msg=str(input())
-            if msg=="End":
+    while round<=total_round: #whole game loop
+        skip=False #cause new round no skip info
+        while True: # round loop
+            
+            if skip==False:
+                print("Rounds : ", round ,"/",total_round)
+                print("Funds : ",funds)
+                db.print_detail()
+                print("\n~ General Information ~")
+                found_risks=current_threat(current_risk_level,patch_mapping,int(db.version))
+                print("Current found risks : ["+",".join(found_risks)+"]")
+                ava_patches=current_ava_patches(current_patch_level,int(db.version))
+                print("Current available versions : ["+",".join(ava_patches)+"]")
+            skip=False    
+                
+            for i in range(len(options)):
+                print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))   
+            msg=str(input("Command :"))
+            if msg=="e":
                 break
+            elif msg=="n":
+                skip=show_userManual()
+            elif msg=="1":
+                skip=user_1_func(patch_mapping,current_patch_level)
+            elif msg=="2":
+                if db.size=="xl":
+                    print("Current Size is the largest")
+                else:
+                    while True:
+                        wish_size=str(input("Which size you want to upgrade ?"))
+                        if wish_size=="m":
+                            size_cost=3000
+                        elif wish_size=="l":
+                            size_cost=6000
+                        elif wish_size=="xl":
+                            size_cost=9000
+                        elif wish_size=="exit":
+                            break
+                        else:
+                            print("Invalid Input")
+                            continue
+
+                        if check_enough_fund(size_cost,funds)==True:
+                            funds-=size_cost
+                            db.size=wish_size
+                            print("Upgrade success !")
+                            break
+                
+            else:
+                skip=True
+                print("Invalid Command. Please refer to user manual")
+
+
+        if db.duty=="all":
+            funds+=size_fund_func(db.size)
+            funds+=round_fund_func(db.size,round,total_round)
         
+        current_risk_level+=random.randint(1,2)
+        if current_risk_level>max_risk_level:
+            current_risk_level=max_risk_level
 
+        current_patch_level+=random.randint(1,2)
+        if current_patch_level>max_patch_level:
+            current_patch_level=max_patch_level
 
-        funds+=size_fund_func(db.size)
-        funds+=round_fund_func(db.size,round,total_round)
         round+=1
-        os.system('cls')
 
-def size_fund_func(size):
+
+def show_userManual():
+    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"}]
+    for i in range(len(options)):
+        print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
+    return True
+
+def current_threat(crl,pm,v): #show current risks
+    version_risk_array=pm[v-1]["risk"]
+    risk_array=[]
+    for i in range(crl):
+        risk_array.append(i+1)
+    filtered_array = [str(item) for item in risk_array if item not in version_risk_array]   
+    return filtered_array
+
+def current_ava_patches(cpl,v):
+    ava_patches=[]
+    for i in range(cpl):
+        if i>v:
+            ava_patches.append(str(i))
+    return ava_patches
+
+def size_fund_func(size): #add fund for each round size
     if size=="s":
         return 250 
     elif size=="m":
@@ -105,7 +172,7 @@ def size_fund_func(size):
     elif size=="xl":
         return 2000 
 
-def round_fund_func(size,round,total_round):
+def round_fund_func(size,round,total_round): #minus fund for each round size
     punishment_ratio=250
     if size=="s":
         size_value=1
@@ -129,6 +196,24 @@ def round_fund_func(size,round,total_round):
         return punishment_ratio*size_value
     else: return 0   
 
+def check_enough_fund(cost,funds):
+    if funds<cost:
+        print("Not enough funds")
+        return False
+    else: return True
+
+def user_1_func(pm,available_query_max):
+    
+    while True:
+        msg=int(input("Which version you want to query ?"))
+        if msg >=1 and msg<=int(available_query_max):
+            break
+        else:
+            print("Invalid Input (You could not query the unexisting version)")
+    print(pm[msg-1])
+    return True
+
+
 
 def game_end():
     
@@ -137,19 +222,11 @@ def game_end():
 
 
 
-
-
-
-
-
-
-
-
-
 while True:
     print("Database Game\nEnter \" 1 \" Start\nEnter \" 2 \" Exit")
     msg=int(input())
     if msg==1:
+        os.system('cls')
         with open('patch_mapping.json') as jf1:
             patch_mapping=json.load(jf1)
         with open('risk_mapping.json') as jf2:

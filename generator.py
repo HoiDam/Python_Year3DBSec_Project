@@ -1,29 +1,31 @@
 import random
 import json
+import math
 
 max_patch_no=10
-max_risk_no=30
+
 max_event_no=70
 max_events_in_risk=5
 
 pr_loc="patch_mapping.json"
 pr_mapping_array=[]
-max_addict=int(max_risk_no/max_patch_no)
+max_addict=3
 last_digit=1
 for i in range(max_patch_no):
     singleset={}
     generated_risks=[]
-    randomize_value=random.randint(1,max_addict)
-    for j in range(last_digit,last_digit+randomize_value):
+   
+    randomize_value=random.randint(int(max_addict/2),max_addict)
+    for j in range(1,last_digit+randomize_value):
         generated_risks.append(j)
     
     last_digit+=randomize_value
-    if i==int(max_patch_no-1):
-        for k in range(last_digit,max_risk_no+1):
-            generated_risks.append(k)
+    
     singleset["patch"]=i+1
     singleset["risk"]=generated_risks
     pr_mapping_array.append(singleset)
+
+max_risk_no=last_digit-1
 
 rm_loc="risk_mapping.json"
 mapping_array=[]
