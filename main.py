@@ -68,13 +68,18 @@ def game_main(patch_mapping,risk_mapping):
     current_patch_level=1
     max_patch_level=len(patch_mapping) #max patch level
     ava_patches=[]
-    
+    end_game=False
+
+    # waiting_task_array=[]
+
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
     
     db=database("1")
 
-    while round<=total_round: #whole game loop
+    while round<=total_round and end_game==False: #whole game loop
         skip=False #cause new round no skip info
+        
+
         while True: # round loop
             
             if skip==False:
@@ -100,15 +105,17 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="2":
                 if db.size=="xl":
                     print("Current Size is the largest")
+                    skip=True
                 else:
                     while True:
-                        wish_size=str(input("Which size you want to upgrade ?"))
+                        wish_size=str(input("Which size you want to upgrade(Type exit to exit this choice) ?"))
+                        
                         if wish_size=="m":
-                            size_cost=3000
+                            size_cost=1500
                         elif wish_size=="l":
-                            size_cost=6000
+                            size_cost=3000
                         elif wish_size=="xl":
-                            size_cost=9000
+                            size_cost=5000
                         elif wish_size=="exit":
                             break
                         else:
@@ -117,10 +124,47 @@ def game_main(patch_mapping,risk_mapping):
 
                         if check_enough_fund(size_cost,funds)==True:
                             funds-=size_cost
-                            db.size=wish_size
+                            db.size=wish_size #here
                             print("Upgrade success !")
                             break
-                
+            elif msg=="3":
+                test_cost=1000
+                while True:
+                    wish_test=str(input("Which version you want to test(Type exit to exit this choice) ?"))
+                    if wish_test in ava_patches:
+                        if check_enough_fund(test_cost,funds)==True:
+                            funds-=test_cost
+                            db.tested_version.append(wish_test) #here
+                            print("Tested success !")
+                            break
+                    elif wish_test=="exit":
+                        break
+                    else:
+                        print("Invalid Input")
+                        continue
+            elif msg=="4":
+                patch_cost=2000
+                while True:
+                    wish_patch=str(input("Which version you want to patch(Type exit to exit this choice) ?"))
+                    if wish_patch in ava_patches:
+                        if check_enough_fund(patch_cost,funds)==True:
+                            funds-=patch_cost
+                            if wish_patch in db.tested_version:
+                                db.version=wish_patch #here
+                            else:
+                                
+                                if randomize(50)==True:
+                                    db.version=wish_patch #here
+                                else:
+                                    print("Upgrade fail") #here
+                            break
+
+                    elif wish_patch=="exit":
+                        break
+                    else:
+                        print("Invalid Input")
+                        continue
+
             else:
                 skip=True
                 print("Invalid Command. Please refer to user manual")
@@ -138,6 +182,8 @@ def game_main(patch_mapping,risk_mapping):
         if current_patch_level>max_patch_level:
             current_patch_level=max_patch_level
 
+        funds+=risk_round(found_risks,risk_mapping)
+
         round+=1
 
 
@@ -146,6 +192,24 @@ def show_userManual():
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True
+
+def randomize(percent):
+    random_no=random.randint(1,100)
+    if random_no<percent:
+        return True
+    else:
+        return False
+
+def risk_round(found_risks,rm):
+    stacks=0
+    for risk in found_risks:
+        if randomize(10)==True:
+            chosen=random.choice(rm[int(risk)-1]["events"])
+            print("The event {} has triggered".format(chosen))
+            print(str(stacks),"has been charged as punishment")
+            stacks+=500
+    return stacks
+
 
 def current_threat(crl,pm,v): #show current risks
     version_risk_array=pm[v-1]["risk"]
@@ -202,7 +266,9 @@ def check_enough_fund(cost,funds):
         return False
     else: return True
 
-def user_1_func(pm,available_query_max):
+# def load_task_template(function,live_time):
+
+def user_1_func(pm,available_query_max): #show patch risk mapping NOT TASK
     
     while True:
         msg=int(input("Which version you want to query ?"))
@@ -212,6 +278,12 @@ def user_1_func(pm,available_query_max):
             print("Invalid Input (You could not query the unexisting version)")
     print(pm[msg-1])
     return True
+
+# def user_2_func(): # YES TASK
+    # return 0
+
+# def user_3_func(): # YES TASK
+    # return 0
 
 
 
