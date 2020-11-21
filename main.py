@@ -1,3 +1,4 @@
+# TO DO Security level punishment
 import json
 import os
 import numpy as np
@@ -31,6 +32,7 @@ def game_main(patch_mapping,risk_mapping):
     current_risk_level=1 #risk level
     max_risk_level=len(risk_mapping) #max risk level
     found_risks=[]
+    risk_detail_array=[] #show detail dangerous
     current_patch_level=1
     max_patch_level=len(patch_mapping) #max patch level
     ava_patches=[]
@@ -40,6 +42,7 @@ def game_main(patch_mapping,risk_mapping):
     
     waiting_task_array=[] #core array
     trash_task_array=[] # prevent bug
+    max_task_profit=4 # if there is 5 task no profit as whole db is repairing
 
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
     task_alert="Task {} has been scheduled . {} rounds after will be done" #task template 
@@ -54,6 +57,10 @@ def game_main(patch_mapping,risk_mapping):
         skip=False #cause new round no skip info
         if end_game==True or funds<0: #instant die
             return {"win":False,"rounds":round}
+
+        for i in range(current_risk_level-len(risk_detail_array)):
+            risk_detail_array.append(risk_detail_gen(round/total_round))
+           
 
         print("\n-------\nRounds : ", round ,"/",total_round) #show current round
         print("~ Your schedualed tasks ~")
@@ -178,18 +185,30 @@ def game_main(patch_mapping,risk_mapping):
                 while True:
                     wish_patch=str(input("Which version you want to patch(Type 0 to exit this choice)?"))
                     if wish_patch in ava_patches:
+                        wish_mode=str(input("Which mode you want to use for patching(Type 0 to exit this choice)?"))
+                        if wish_mode=="0":
+                            skip=True
+                            break
+                        elif wish_mode=="Auto":
+                            livetime=2
+                        elif wish_mode=="Manual":
+                            livetime=3
+                        else:
+                            print("Invalid Input")
+                            continue 
                         if check_dup_task(int(msg),wish_patch,waiting_task_array,-1)==True:
                             print("You have scheduled this task before!")
                             skip=True
                             break
                         if check_enough_fund(patch_cost,funds)==True:
                             funds-=patch_cost
-                            task={"function":int(msg),"parameter":wish_patch,"livetime":int(2),"func_name":"Patching"}
+                            task={"function":int(msg),"parameter":wish_patch,"livetime":livetime,"func_name":"Patching"}
                             waiting_task_array.append(task)
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
 
                     elif wish_patch=="0":
+                        skip=True
                         break
                     else:
                         print("Invalid Input")                       
@@ -256,14 +275,21 @@ def game_main(patch_mapping,risk_mapping):
                 skip=True
                 print("Invalid Command. Please refer to user manual")
 
+        print("\n~ End Round result ~")
 
         for db in db_array:
             if db.activate=="Working":
                 times = len(db.duty)
-                funds+=times*size_fund_func(db.size)
-            funds+=times*round_fund_func(db.size,round,total_round)
-        
-        random_no=random.randint(0,2)
+                overload =4-len(waiting_task_array)
+                if overload<0:overload=0
+                profits=times*size_fund_func(db.size)* (overload/max_task_profit)
+                funds+=profits
+        print("Profits from Food Delievery app :+",profits)
+        if overload<2:
+            print("Alert! Too many scheduled tasks will cause the app could not work for a certain time.")  
+        funds+=risk_round(found_risks,risk_mapping)
+
+        random_no=random.randint(0,1)
         current_risk_level+=random_no
         if current_risk_level>max_risk_level:
             current_risk_level=max_risk_level
@@ -272,7 +298,7 @@ def game_main(patch_mapping,risk_mapping):
         if current_patch_level>max_patch_level:
             current_patch_level=max_patch_level
 
-        funds+=risk_round(found_risks,risk_mapping)
+        
 
         round+=1
     return {"win":True,"rounds":30}
@@ -289,6 +315,54 @@ def randomize(percent):
         return True
     else:
         return False
+
+def risk_detail_gen(percentile):
+    column_list=["attack_vector","attack_complex","privileges_required","cia","general_danger"]
+    risk_dict={}
+    dang_sum=0
+    for i in range(4):
+        dang=risk_dang_gen(percentile)
+        dang_sum+=dang
+        risk_dict[column_list[i]]=dang
+    risk_dict["general_danger"]=round(dang_sum/4)
+    return risk_dict
+
+def risk_dang_gen(percentile):
+    base=100
+    low=base*(1-percentile)
+    medium=base*(1-percentile*percentile)
+    high=base*(1-percentile*percentile*percentile)
+    # print(low,medium,high)
+    # if percentile<0.3:
+    #     low=80
+    #     medium=90
+    #     high=100
+    #     vh=101
+    # elif percentile<0.6:
+    #     low=40
+    #     medium=70
+    #     high=90
+    #     vh=100
+    # elif percentile<0.9:
+    #     low=20
+    #     medium=40
+    #     high=75
+    #     vh=100
+    # else:
+    #     low=0
+    #     medium=30
+    #     high=70
+    #     vh=100
+    random_no=float(random.randint(1,100))
+    if random_no<low:
+        return 1
+    elif random_no<medium:
+        return 2
+    elif random_no<high:
+        return 3
+    else:
+        return 4
+
 
 def risk_round(found_risks,rm):
     stacks=0
@@ -327,30 +401,6 @@ def size_fund_func(size): #add fund for each round size
         return 700 
     elif size=="xl":
         return 1000 
-
-def round_fund_func(size,round,total_round): #minus fund for each round size
-    punishment_ratio=100
-    if size=="s":
-        size_value=1
-    elif size=="m":
-        size_value=2
-    elif size=="l": #L 
-        size_value=3
-    elif size=="xl":
-        size_value=4
-    round_ratio=float(round/total_round)
-    if round_ratio<0.25:
-        size_value-=1
-    elif round_ratio<0.5:
-        size_value-=2
-    elif round_ratio<0.75:
-        size_value-=3
-    elif round_ratio<=1:
-        size_value-=4
-    
-    if size_value<0:
-        return punishment_ratio*size_value
-    else: return 0   
 
 def check_enough_fund(cost,funds):
     if funds<cost:

@@ -44,3 +44,4 @@ with open(pr_loc, 'w') as f:
 
 with open(rm_loc, 'w') as f:
     json.dump(mapping_array, f,indent=4)
+

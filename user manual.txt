@@ -17,7 +17,8 @@ each testing : 1000
 4:
 patching
 2000
-2 round
+2 round auto
+3 rounds manual
 5:
 split 
 1500 per duty
@@ -29,3 +30,4 @@ userpii
 encrypt
 AES128 1 round
 AES256 2 round
+7:inspect risk
