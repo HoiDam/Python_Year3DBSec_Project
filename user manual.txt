@@ -1,14 +1,28 @@
 1: 
 show db patch can deal with wt risk
 2:
+upgrade db 
+1 for main when no split
+
 upgrade size
 exit
 m 1500
 l 3000
 xl 5000
+2 round
 3:
 test certain patch
 each testing : 1000
+1 round 
 4:
 patching
 2000
+2 round
+5:
+split 
+1500 per duty
+1 round
+userpii
+2nd name
+3d name
+6:

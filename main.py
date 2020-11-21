@@ -3,55 +3,21 @@ import os
 import numpy as np
 import random
 
-# class web_app_ser:
-#     def __init__(self,name="Web Application Server"):
-#         self.activate=True
-#         self.name=name
-#         self.size="s"
-        
-#     def upgrade_size(self,size):
-#         self.size=size
-
-#     def deactivate(self):
-#         self.activate=False
-
-#     def print_detail(self):
-#         print("\n~",self.name,"~")
-#         print("Service : ", str(self.activate))
-#         print("Size : ",self.size)
-
 class database:
-    def __init__(self,version,name="Database"):
-        self.activate=True 
+    def __init__(self,show,version,duty,name="Database",size="s",encryption="N/A"):
+        self.show=show
+        self.activate="Working"
         self.name=name
-        self.size="s"
-        self.version=version
-        self.tested_version=[]
-        self.encryption="NA" 
-        self.duty="all"       
-            
-
-    def add_test_ver(self,version):
-        self.tested_version.append(version)
-
-    def remove_test_ver(self,version):
-        self.tested_version.pop(version)    
-        
-    def upgrade_size(self,size):
         self.size=size
-    
-    def patch(self,version):
         self.version=version
-
-    def deactivate(self):
-        self.activate=False
-    
+        self.encryption=encryption 
+        self.duty=duty      
+            
     def print_detail(self):
         print("\n~",self.name,"~")
         print("Service : ", str(self.activate))
         print("Size : ",self.size)
         print("Current Version : " ,self.version) 
-        print("Tested Versions : " ,self.tested_version)
         print("Encryption : ",self.encryption)
         print("Duty : " ,self.duty)
 
@@ -59,7 +25,7 @@ def game_main(patch_mapping,risk_mapping):
     
     # print(patch_mapping)
     # print(risk_mapping)
-    funds=1000 #initial funds
+    funds=10000 #initial funds
     round=1 #initial round
     total_round=30 #default total round
     current_risk_level=1 #risk level
@@ -68,13 +34,17 @@ def game_main(patch_mapping,risk_mapping):
     current_patch_level=1
     max_patch_level=len(patch_mapping) #max patch level
     ava_patches=[]
+    tested_version=[]
     end_game=False
 
     waiting_task_array=[]
 
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
-    task_alert="Task {} has been scheduled . {} rounds after will be done"
-    db=database("1")
+    task_alert="Task {} has been scheduled . {} rounds after will be done" #task template 
+    
+    db_array=[]
+    db=database(True,"1",["UserPII","OrderDetails","PartnerInfo"] )
+    db_array.append(db)
 
     while round<=total_round: #whole game loop
 
@@ -84,25 +54,33 @@ def game_main(patch_mapping,risk_mapping):
 
         print("\n-------\nRounds : ", round ,"/",total_round) #show current round
         print("~ Your schedualed tasks ~")
-        for task in waiting_task_array: # do schedualed task
+        for task in waiting_task_array: ###do schedualed task
             task["livetime"]-=1
             if task["livetime"]==0:
                 if task["function"]==2:
-                    db.size=task["parameter"] #here
-                    print("Task : database upgraded to {} size !".format(task["parameter"]))
+                    db_array[task["db"]-1].size=task["parameter"] 
+                    print("Task : database {} upgraded to {} size !".format(task["db"],task["parameter"]))
                 if task["function"]==3:
-                    db.tested_version.append(task["parameter"]) #here
+                    tested_version.append(task["parameter"])
                     print("Task : version {} tested success !".format(task["parameter"]))
                 if task["function"]==4:
-                    if task["parameter"] in db.tested_version:
-                        db.version=task["parameter"]
+                    if task["parameter"] in tested_version:
+                        for db in db_array:
+                            db.version=task["parameter"]
                         print("Task : version {} patched success !".format(task["parameter"]))
                     else:
                         if randomize(50)==True:
-                            db.version=task["parameter"]
+                            for db in db_array:
+                                db.version=task["parameter"]
                             print("Task : version {} patched success !".format(task["parameter"]))
                         else:
                             print("Task : version {} patched FAILED !".format(task["parameter"]))
+                if task["function"]==5:
+                    db_array[0].duty.remove(task["parameter"])
+                    db_array[0].name="Database 1"
+                    db_array.append(database(True,db_array[0].version,[task["parameter"]],name="Database "+str(len(db_array)+1)))
+                    print("Task : main database splited with seperate {} database !".format(task["parameter"]))
+                waiting_task_array.remove(task)
             else:
                 print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
         print("~          ~            ~")
@@ -112,12 +90,15 @@ def game_main(patch_mapping,risk_mapping):
             
             if skip==False:
                 print("Funds : ",funds)
-                db.print_detail()
+                for db in db_array:
+                    if db.show==True:
+                        db.print_detail()
                 print("\n~ General Information ~")
-                found_risks=current_threat(current_risk_level,patch_mapping,int(db.version))
+                found_risks=current_threat(current_risk_level,patch_mapping,int(db_array[0].version))
                 print("Current found risks : ["+",".join(found_risks)+"]")
-                ava_patches=current_ava_patches(current_patch_level,int(db.version))
+                ava_patches=current_ava_patches(current_patch_level,int(db_array[0].version))
                 print("Current available versions : ["+",".join(ava_patches)+"]")
+                print("Current tested versions : ["+",".join(tested_version)+"]" )
             skip=False    
                 
             for i in range(len(options)):
@@ -130,73 +111,114 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="1":
                 skip=user_1_func(patch_mapping,current_patch_level)
             elif msg=="2":
-                if db.size=="xl":
-                    print("Current Size is the largest")
-                    skip=True
-                else:
-                    while True:
-                        wish_size=str(input("Which size you want to upgrade(Type exit to exit this choice)?"))
+                while True:
+                    wish_db=int(input("Which db you want to upgrade(Type 0 to exit this choice)?"))
+                    if wish_db=="0":
+                        break
+                    elif wish_db>len(db_array) or int(wish_db)<=0:
+                        print("Invalid Input")
+                        continue
+                    if db_array[int(wish_db)-1].size=="xl":
+                        print("Current Size is the largest")
+                        continue
+                   
+                    wish_size=str(input("Which size you want to upgrade(Type 0 to exit this choice)?"))
+                    if wish_size=="m":
+                        size_cost=1500
                         
-                        if wish_size=="m":
-                            size_cost=1500
-                        elif wish_size=="l":
-                            size_cost=3000
-                        elif wish_size=="xl":
-                            size_cost=5000
-                        elif wish_size=="exit":
-                            break
-                        else:
-                            print("Invalid Input")
-                            continue
-
-                        if check_enough_fund(size_cost,funds)==True:
-                            funds-=size_cost
-                            task={"function":2,"parameter":wish_size,"livetime":int(2),"func_name":"Upgrading"}
-                            waiting_task_array.append(task)
-                            print(task_alert.format(task["func_name"],task["livetime"]))                            
-                            break
+                    elif wish_size=="l":
+                        size_cost=3000
+                        
+                    elif wish_size=="xl":
+                        size_cost=5000
+                        
+                    elif wish_size=="0":
+                        break
+                    else:
+                        print("Invalid Input")
+                        continue
+                    if check_dup_task(int(msg),wish_size,waiting_task_array,wish_db)==True: 
+                        print("You have scheduled this task before!")
+                        skip=True
+                        break
+                    if check_enough_fund(size_cost,funds)==True:
+                        funds-=size_cost
+                        task={"function":int(msg),"parameter":wish_size,"livetime":int(2),"func_name":"Upgrading","db":int(wish_db)}
+                        waiting_task_array.append(task)
+                        print("Database {} ".format(wish_db)+task_alert.format(task["func_name"],task["livetime"]))                            
+                        break
             elif msg=="3":
                 test_cost=1000
                 while True:
-                    wish_test=str(input("Which version you want to test(Type exit to exit this choice) ?"))
+                    wish_test=str(input("Which version you want to test(Type 0 to exit this choice) ?"))
                     if wish_test in ava_patches:
+                        if check_dup_task(int(msg),wish_test,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
                         if check_enough_fund(test_cost,funds)==True:
                             funds-=test_cost
-                            task={"function":3,"parameter":wish_test,"livetime":int(1),"func_name":"Testing"}
+                            task={"function":int(msg),"parameter":wish_test,"livetime":int(1),"func_name":"Testing"}
                             waiting_task_array.append(task)
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
-                    elif wish_test=="exit":
+                    elif wish_test=="0":
                         break
                     else:
-                        print("Invalid Input")
-                        continue
+                        print("Invalid Input") 
             elif msg=="4":
                 patch_cost=2000
                 while True:
-                    wish_patch=str(input("Which version you want to patch(Type exit to exit this choice)?"))
+                    wish_patch=str(input("Which version you want to patch(Type 0 to exit this choice)?"))
                     if wish_patch in ava_patches:
+                        if check_dup_task(int(msg),wish_patch,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
                         if check_enough_fund(patch_cost,funds)==True:
                             funds-=patch_cost
-                            task={"function":4,"parameter":wish_patch,"livetime":int(2),"func_name":"Patching"}
+                            task={"function":int(msg),"parameter":wish_patch,"livetime":int(2),"func_name":"Patching"}
                             waiting_task_array.append(task)
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
 
-                    elif wish_patch=="exit":
+                    elif wish_patch=="0":
+                        break
+                    else:
+                        print("Invalid Input")                       
+            elif msg=="5":
+                split_cost=1500
+                if len(db_array)==3:
+                    print("No more duty could be split")
+                    skip=True
+                while True:
+                    wish_split=str(input("Which duty you want to split(Type 0 to exit this choice) ?"))
+                    if wish_split in db_array[0].duty:
+                        if check_dup_task(int(msg),wish_split,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
+                        if check_enough_fund(split_cost,funds)==True:
+                            funds-=split_cost
+                            task={"function":int(msg),"parameter":wish_split,"livetime":int(1),"func_name":"spliting"}
+                            waiting_task_array.append(task)
+                            print(task_alert.format(task["func_name"],task["livetime"]))
+                            break
+                    elif wish_split=="0":
                         break
                     else:
                         print("Invalid Input")
-                        continue
-
+                        
             else:
                 skip=True
                 print("Invalid Command. Please refer to user manual")
 
 
-        if db.duty=="all":
-            funds+=size_fund_func(db.size)
-            funds+=round_fund_func(db.size,round,total_round)
+        for db in db_array:
+            if db.activate=="Working":
+                times = len(db.duty)
+                funds+=times*size_fund_func(db.size)
+            funds+=times*round_fund_func(db.size,round,total_round)
         
         current_risk_level+=random.randint(1,2)
         if current_risk_level>max_risk_level:
@@ -212,7 +234,7 @@ def game_main(patch_mapping,risk_mapping):
     return {"win":True,"rounds":30}
 
 def show_userManual():
-    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"}]
+    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"}]
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True
@@ -226,12 +248,15 @@ def randomize(percent):
 
 def risk_round(found_risks,rm):
     stacks=0
+    punishment_ratio=100
     for risk in found_risks:
         if randomize(10)==True:
             chosen=random.choice(rm[int(risk)-1]["events"])
+            random_times=random.randint(1,10)
+            punishment=random_times*punishment_ratio
             print("The event {} has triggered".format(chosen))
-            print(str(stacks),"has been charged as punishment")
-            stacks+=500
+            print(str(punishment),"has been charged as punishment")
+            stacks+=punishment
     return stacks
 
 def current_threat(crl,pm,v): #show current risks
@@ -251,16 +276,16 @@ def current_ava_patches(cpl,v):
 
 def size_fund_func(size): #add fund for each round size
     if size=="s":
-        return 250 
+        return 100 
     elif size=="m":
-        return 500 
+        return 300 
     elif size=="l": #L 
-        return 1000 
+        return 700 
     elif size=="xl":
-        return 2000 
+        return 1000 
 
 def round_fund_func(size,round,total_round): #minus fund for each round size
-    punishment_ratio=250
+    punishment_ratio=100
     if size=="s":
         size_value=1
     elif size=="m":
@@ -288,6 +313,18 @@ def check_enough_fund(cost,funds):
         print("Not enough funds")
         return False
     else: return True
+
+def check_dup_task(function,parameter,wta,db): #check duplicate scheduled task
+    if db==-1:
+        for task in wta:  
+            if task["function"]==function and task["parameter"]==parameter:
+                return True # duplicated found
+        return False
+    else:
+        for task in wta:  
+            if task["function"]==function and task["parameter"]==parameter and task["db"]==db:
+                return True # duplicated found
+        return False
 
 def user_1_func(pm,available_query_max): #show patch risk mapping NOT TASK
     
