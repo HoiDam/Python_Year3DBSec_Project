@@ -70,20 +70,47 @@ def game_main(patch_mapping,risk_mapping):
     ava_patches=[]
     end_game=False
 
-    # waiting_task_array=[]
+    waiting_task_array=[]
 
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
-    
+    task_alert="Task {} has been scheduled . {} rounds after will be done"
     db=database("1")
 
-    while round<=total_round and end_game==False: #whole game loop
+    while round<=total_round: #whole game loop
+
         skip=False #cause new round no skip info
-        
+        if end_game==True or funds<0: #instant die
+            return {"win":False,"rounds":round}
+
+        print("\n-------\nRounds : ", round ,"/",total_round) #show current round
+        print("~ Your schedualed tasks ~")
+        for task in waiting_task_array: # do schedualed task
+            task["livetime"]-=1
+            if task["livetime"]==0:
+                if task["function"]==2:
+                    db.size=task["parameter"] #here
+                    print("Task : database upgraded to {} size !".format(task["parameter"]))
+                if task["function"]==3:
+                    db.tested_version.append(task["parameter"]) #here
+                    print("Task : version {} tested success !".format(task["parameter"]))
+                if task["function"]==4:
+                    if task["parameter"] in db.tested_version:
+                        db.version=task["parameter"]
+                        print("Task : version {} patched success !".format(task["parameter"]))
+                    else:
+                        if randomize(50)==True:
+                            db.version=task["parameter"]
+                            print("Task : version {} patched success !".format(task["parameter"]))
+                        else:
+                            print("Task : version {} patched FAILED !".format(task["parameter"]))
+            else:
+                print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
+        print("~          ~            ~")
+                
 
         while True: # round loop
             
             if skip==False:
-                print("Rounds : ", round ,"/",total_round)
                 print("Funds : ",funds)
                 db.print_detail()
                 print("\n~ General Information ~")
@@ -108,7 +135,7 @@ def game_main(patch_mapping,risk_mapping):
                     skip=True
                 else:
                     while True:
-                        wish_size=str(input("Which size you want to upgrade(Type exit to exit this choice) ?"))
+                        wish_size=str(input("Which size you want to upgrade(Type exit to exit this choice)?"))
                         
                         if wish_size=="m":
                             size_cost=1500
@@ -124,8 +151,9 @@ def game_main(patch_mapping,risk_mapping):
 
                         if check_enough_fund(size_cost,funds)==True:
                             funds-=size_cost
-                            db.size=wish_size #here
-                            print("Upgrade success !")
+                            task={"function":2,"parameter":wish_size,"livetime":int(2),"func_name":"Upgrading"}
+                            waiting_task_array.append(task)
+                            print(task_alert.format(task["func_name"],task["livetime"]))                            
                             break
             elif msg=="3":
                 test_cost=1000
@@ -134,8 +162,9 @@ def game_main(patch_mapping,risk_mapping):
                     if wish_test in ava_patches:
                         if check_enough_fund(test_cost,funds)==True:
                             funds-=test_cost
-                            db.tested_version.append(wish_test) #here
-                            print("Tested success !")
+                            task={"function":3,"parameter":wish_test,"livetime":int(1),"func_name":"Testing"}
+                            waiting_task_array.append(task)
+                            print(task_alert.format(task["func_name"],task["livetime"]))
                             break
                     elif wish_test=="exit":
                         break
@@ -145,18 +174,13 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="4":
                 patch_cost=2000
                 while True:
-                    wish_patch=str(input("Which version you want to patch(Type exit to exit this choice) ?"))
+                    wish_patch=str(input("Which version you want to patch(Type exit to exit this choice)?"))
                     if wish_patch in ava_patches:
                         if check_enough_fund(patch_cost,funds)==True:
                             funds-=patch_cost
-                            if wish_patch in db.tested_version:
-                                db.version=wish_patch #here
-                            else:
-                                
-                                if randomize(50)==True:
-                                    db.version=wish_patch #here
-                                else:
-                                    print("Upgrade fail") #here
+                            task={"function":4,"parameter":wish_patch,"livetime":int(2),"func_name":"Patching"}
+                            waiting_task_array.append(task)
+                            print(task_alert.format(task["func_name"],task["livetime"]))
                             break
 
                     elif wish_patch=="exit":
@@ -185,7 +209,7 @@ def game_main(patch_mapping,risk_mapping):
         funds+=risk_round(found_risks,risk_mapping)
 
         round+=1
-
+    return {"win":True,"rounds":30}
 
 def show_userManual():
     options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"}]
@@ -209,7 +233,6 @@ def risk_round(found_risks,rm):
             print(str(stacks),"has been charged as punishment")
             stacks+=500
     return stacks
-
 
 def current_threat(crl,pm,v): #show current risks
     version_risk_array=pm[v-1]["risk"]
@@ -266,12 +289,10 @@ def check_enough_fund(cost,funds):
         return False
     else: return True
 
-# def load_task_template(function,live_time):
-
 def user_1_func(pm,available_query_max): #show patch risk mapping NOT TASK
     
     while True:
-        msg=int(input("Which version you want to query ?"))
+        msg=int(input("Which version you want to query?"))
         if msg >=1 and msg<=int(available_query_max):
             break
         else:
@@ -279,17 +300,13 @@ def user_1_func(pm,available_query_max): #show patch risk mapping NOT TASK
     print(pm[msg-1])
     return True
 
-# def user_2_func(): # YES TASK
-    # return 0
-
-# def user_3_func(): # YES TASK
-    # return 0
 
 
 
-def game_end():
-    
-    print("Ended")
+def game_end(win,rounds):
+    if win==True:
+        print("Congrats You Won !")
+    else : print ("You lose at {} round . Better luck next time !".format(rounds))
 
 
 
@@ -303,8 +320,8 @@ while True:
             patch_mapping=json.load(jf1)
         with open('risk_mapping.json') as jf2:
             risk_mapping=json.load(jf2)
-        game_main(patch_mapping,risk_mapping)
-        game_end()
+        stats=game_main(patch_mapping,risk_mapping)
+        game_end(stats["win"],stats["rounds"])
     elif msg==2:
         break
     
