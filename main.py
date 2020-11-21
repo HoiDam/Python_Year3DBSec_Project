@@ -4,8 +4,8 @@ import numpy as np
 import random
 
 class database:
-    def __init__(self,show,version,duty,name="Database",size="s",encryption="N/A"):
-        self.show=show
+    def __init__(self,version,duty,name="Database",size="s",encryption="N/A"):
+        
         self.activate="Working"
         self.name=name
         self.size=size
@@ -36,14 +36,17 @@ def game_main(patch_mapping,risk_mapping):
     ava_patches=[]
     tested_version=[]
     end_game=False
-
-    waiting_task_array=[]
+    security_level=0            #max = 100 25 low 50 medium 75high 100very high
+    
+    waiting_task_array=[] #core array
+    trash_task_array=[] # prevent bug
 
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
     task_alert="Task {} has been scheduled . {} rounds after will be done" #task template 
-    
+    split_counter=0 #to control user do not split more than 3
+
     db_array=[]
-    db=database(True,"1",["UserPII","OrderDetails","PartnerInfo"] )
+    db=database("1",["UserPII","OrderDetails","PartnerInfo"] )
     db_array.append(db)
 
     while round<=total_round: #whole game loop
@@ -78,21 +81,24 @@ def game_main(patch_mapping,risk_mapping):
                 if task["function"]==5:
                     db_array[0].duty.remove(task["parameter"])
                     db_array[0].name="Database 1"
-                    db_array.append(database(True,db_array[0].version,[task["parameter"]],name="Database "+str(len(db_array)+1)))
+                    db_array.append(database(db_array[0].version,[task["parameter"]],name="Database "+str(len(db_array)+1)))
                     print("Task : main database splited with seperate {} database !".format(task["parameter"]))
-                waiting_task_array.remove(task)
+                if task["function"]==6:
+                    db_array[task["db"]-1].encryption=task["parameter"]
+                    print("Task : database {} encryption changed to {} !".format(task["db"],task["parameter"]))
+
+                trash_task_array.append(task)
             else:
                 print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
         print("~          ~            ~")
-                
+        waiting_task_array=[task for task in waiting_task_array if task not in trash_task_array]      
 
         while True: # round loop
             
             if skip==False:
                 print("Funds : ",funds)
                 for db in db_array:
-                    if db.show==True:
-                        db.print_detail()
+                    db.print_detail()
                 print("\n~ General Information ~")
                 found_risks=current_threat(current_risk_level,patch_mapping,int(db_array[0].version))
                 print("Current found risks : ["+",".join(found_risks)+"]")
@@ -113,9 +119,10 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="2":
                 while True:
                     wish_db=int(input("Which db you want to upgrade(Type 0 to exit this choice)?"))
-                    if wish_db=="0":
+                    if str(wish_db)=="0":
+                        skip=True
                         break
-                    elif wish_db>len(db_array) or int(wish_db)<=0:
+                    elif wish_db>len(db_array) or wish_db<=0:
                         print("Invalid Input")
                         continue
                     if db_array[int(wish_db)-1].size=="xl":
@@ -188,7 +195,7 @@ def game_main(patch_mapping,risk_mapping):
                         print("Invalid Input")                       
             elif msg=="5":
                 split_cost=1500
-                if len(db_array)==3:
+                if split_counter==2 :
                     print("No more duty could be split")
                     skip=True
                 while True:
@@ -202,13 +209,49 @@ def game_main(patch_mapping,risk_mapping):
                             funds-=split_cost
                             task={"function":int(msg),"parameter":wish_split,"livetime":int(1),"func_name":"spliting"}
                             waiting_task_array.append(task)
+                            split_counter+=1
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
                     elif wish_split=="0":
                         break
                     else:
                         print("Invalid Input")
-                        
+            elif msg=="6":
+                encrypt_cost=1500
+                while True:
+                    wish_db=int(input("Which db you want to encrypt(Type 0 to exit this choice)?"))
+                    if str(wish_db)=="0":
+                        skip=True
+                        break
+                    elif wish_db>len(db_array) or wish_db<=0:
+                        print("Invalid Input")
+                        continue
+                    elif db_array[int(wish_db)-1].encryption == "AES256":
+                        print("Chosen Database has the highest encrypt level")
+                        continue
+                    wish_bits=str(input("Which encryption method you want to apply(Type 0 to exit this choice)?"))
+                    if wish_bits=="0":
+                        skip=True
+                        break
+                    elif wish_bits=="AES128":
+                        livetime=1
+                    elif wish_bits=="AES256":
+                        livetime=2
+                    else:
+                        print("Invalid Input")
+                        continue
+                    if check_dup_task(int(msg),wish_bits,waiting_task_array,wish_db)==True: 
+                        print("You have scheduled this task before!")
+                        skip=True
+                        break
+                    if check_enough_fund(encrypt_cost,funds)==True:
+                        funds-=encrypt_cost
+                        task={"function":int(msg),"parameter":wish_bits,"livetime":livetime,"func_name":"Encrypting","db":wish_db}
+                        waiting_task_array.append(task)
+                        print("Database {} ".format(wish_db)+task_alert.format(task["func_name"],task["livetime"]))                            
+                        break
+
+                             
             else:
                 skip=True
                 print("Invalid Command. Please refer to user manual")
@@ -220,11 +263,12 @@ def game_main(patch_mapping,risk_mapping):
                 funds+=times*size_fund_func(db.size)
             funds+=times*round_fund_func(db.size,round,total_round)
         
-        current_risk_level+=random.randint(1,2)
+        random_no=random.randint(0,2)
+        current_risk_level+=random_no
         if current_risk_level>max_risk_level:
             current_risk_level=max_risk_level
 
-        current_patch_level+=random.randint(1,2)
+        current_patch_level+=random_no
         if current_patch_level>max_patch_level:
             current_patch_level=max_patch_level
 
@@ -234,7 +278,7 @@ def game_main(patch_mapping,risk_mapping):
     return {"win":True,"rounds":30}
 
 def show_userManual():
-    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"}]
+    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"},{"key":"5","notices":"split db"}]
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True

@@ -26,3 +26,6 @@ userpii
 2nd name
 3d name
 6:
+encrypt
+AES128 1 round
+AES256 2 round
