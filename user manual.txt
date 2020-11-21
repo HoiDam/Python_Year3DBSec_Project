@@ -1,0 +1,14 @@
+1: 
+show db patch can deal with wt risk
+2:
+upgrade size
+exit
+m 1500
+l 3000
+xl 5000
+3:
+test certain patch
+each testing : 1000
+4:
+patching
+2000
