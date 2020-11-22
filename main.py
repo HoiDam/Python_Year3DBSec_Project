@@ -7,14 +7,14 @@ import pandas as pd
 from tabulate import tabulate # pretty print
 
 class database:
-    def __init__(self,version,duty,name="Database",size=1,encryption="N/A"):
-        
+    def __init__(self,version,duty,name="Database",size=1,encryption="N/A",hashing="N/A"):
         self.activate="Working"
         self.name=name
         self.size=size
         self.version=version
         self.encryption=encryption 
         self.duty=duty      
+        self.hashing=hashing
             
     def print_detail(self):
         print("\n~",self.name,"~")
@@ -22,6 +22,7 @@ class database:
         print("Size : ",size_converter(self.size))
         print("Current Version : " ,self.version) 
         print("Encryption : ",self.encryption)
+        print("Hashing for Password :",self.hashing)
         print("Duty : " ,self.duty)
 
 def game_main(patch_mapping,risk_mapping):
@@ -40,10 +41,10 @@ def game_main(patch_mapping,risk_mapping):
     ava_patches=[]
     tested_version=[]
     end_game=False
-    security_level=0            #max = 100 25 low 50 medium 75high 100very high
-    
+        
     waiting_task_array=[] #core array
-    
+    accident_array=[] #store accidents
+
     max_task_profit=4 # if there is 5 task no profit as whole db is repairing
 
     options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
@@ -53,6 +54,7 @@ def game_main(patch_mapping,risk_mapping):
     db_array=[]
     db=database("1",["UserPII","OrderDetails","PartnerInfo"] )
     db_array.append(db)
+    asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
 
     while round<=total_round: #whole game loop
 
@@ -60,12 +62,13 @@ def game_main(patch_mapping,risk_mapping):
         if end_game==True or funds<0: #instant die
             return {"win":False,"rounds":round}
 
+        round_ratio=round/total_round #INDICATE 0.xx~1
         for i in range(current_risk_level-len(risk_detail_array)):
-            risk_detail_array.append(risk_detail_gen(round/total_round))
+            risk_detail_array.append(risk_detail_gen(round_ratio))
            
 
         print("\n-------\nRounds : ", round ,"/",total_round) #show current round
-        waiting_task_array=scheduled_task_func(waiting_task_array,db_array,tested_version) #check scheduled
+        waiting_task_array=scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict) #check scheduled
         while True: # round loop
             
             if skip==False:
@@ -73,12 +76,20 @@ def game_main(patch_mapping,risk_mapping):
                 for db in db_array:
                     db.print_detail()
                 print("\n~ General Information ~")
-                print("Security :",show_sec_level(security_level))
+                system_statb_level=ss_level_func(db_array,round_ratio)
+                print(">> Whole System is {} <<".format(system_statb_level["comment"]))
+                security_level=sec_level_func(found_risks,asset_dict,db_array)
+                # print(security_level)
+                sec_label=show_sec_level(security_level)
+                print("External Security :",sec_label)
                 found_risks=current_threat(current_risk_level,patch_mapping,int(db_array[0].version))
                 print("Current found risks : ["+",".join(found_risks)+"]")
                 ava_patches=current_ava_patches(current_patch_level,int(db_array[0].version))
                 print("Current available versions : ["+",".join(ava_patches)+"]")
                 print("Current tested versions : ["+",".join(tested_version)+"]" )
+                print("Firewall :",asset_dict["fw"])
+                if (asset_dict["fw"]=="Working"): #ensure
+                    print("Demilitarized zone :",asset_dict["dmz"])
             skip=False    
                 
             for i in range(len(options)):
@@ -108,6 +119,7 @@ def game_main(patch_mapping,risk_mapping):
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
                     elif wish_test=="0":
+                        skip=True
                         break
                     else:
                         print("Invalid Input") 
@@ -239,7 +251,85 @@ def game_main(patch_mapping,risk_mapping):
                         waiting_task_array.append(task)
                         print("Database {} ".format(wish_db)+task_alert.format(task["func_name"],task["livetime"]))                            
                         break                        
-                             
+            elif msg=="8":
+                hashing_cost=1500
+                while True:
+                    if db_array[0].hashing == "SHA2":
+                        print("Chosen Database has the highest hashing level")
+                        break
+                    wish_bits=str(input("Which hashing method you want to apply(Type 0 to exit this choice)?"))
+                    if wish_bits=="0":
+                        skip=True
+                        break
+                    elif wish_bits=="MD5":
+                        livetime=1
+                    elif wish_bits=="SHA2":
+                        livetime=2
+                    else:
+                        print("Invalid Input")
+                        continue
+                    if check_dup_task(int(msg),wish_bits,waiting_task_array,-1)==True: 
+                        print("You have scheduled this task before!")
+                        skip=True
+                        break
+                    if check_enough_fund(hashing_cost,funds)==True:
+                        funds-=hashing_cost
+                        task={"function":int(msg),"parameter":wish_bits,"livetime":livetime,"func_name":"Encrypting"}
+                        waiting_task_array.append(task) #success
+                        print("Database {} ".format(wish_db)+task_alert.format(task["func_name"],task["livetime"]))                            
+                        break
+            elif msg=="9":
+                build_cost=3000
+                while True:
+                    ans=str(input("Are you sure to build firewall ?"))
+                    if asset_dict["fw"]=="Working":
+                        print("Firewall is working and built previously !")
+                        skip=True
+                        break
+                    if ans=="y":
+                        if check_dup_task(int(msg),ans,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
+                        if check_enough_fund(build_cost,funds)==True:
+                            funds-=build_cost
+                            task={"function":int(msg),"parameter":ans,"livetime":1,"func_name":"Firewall building"}
+                            waiting_task_array.append(task) #success
+                            print(task_alert.format(task["func_name"],task["livetime"]))
+                            break
+                    elif ans=="n":
+                        skip=True
+                        break
+                    else:
+                        print("Invalid Input") 
+            elif msg=="10":
+                build_cost=1000
+                while True:
+                    ans=str(input("Are you sure to apply Demilitarized zone?"))
+                    if asset_dict["fw"]=="N/A":
+                        print("You have to build firewall first !")
+                        skip=True
+                        break
+                    if asset_dict["dmz"]=="Working":
+                        print("Demilitarized zone is working and applied previously !")
+                        skip=True
+                        break
+                    if ans=="y":
+                        if check_dup_task(int(msg),ans,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
+                        if check_enough_fund(build_cost,funds)==True:
+                            funds-=build_cost
+                            task={"function":int(msg),"parameter":ans,"livetime":1,"func_name":"Firewall building"}
+                            waiting_task_array.append(task) #success
+                            print(task_alert.format(task["func_name"],task["livetime"]))
+                            break
+                    elif ans=="n":
+                        skip=True
+                        break
+                    else:
+                        print("Invalid Input") 
             else:
                 skip=True
                 print("Invalid Command. Please refer to user manual")
@@ -251,12 +341,12 @@ def game_main(patch_mapping,risk_mapping):
                 times = len(db.duty)
                 overload =4-len(waiting_task_array)
                 if overload<0:overload=0
-                profits=times*size_fund_func(size_converter(db.size))* (overload/max_task_profit)
+                profits=times*size_fund_func(size_converter(db.size))* (overload/max_task_profit) *system_statb_level["ratio"]        # no. duty * size_earning * task load * system stability
                 funds+=profits
         print("Profits from Food Delievery app :+",profits)
         if overload<2:
             print("Alert! Too many scheduled tasks will cause the app could not work for a certain time.")  
-        funds+=risk_round(found_risks,risk_mapping)
+        funds-=risk_round(found_risks,risk_mapping,sec_label,round_ratio,risk_detail_array)
 
         random_no=random.randint(0,1)
         current_risk_level+=random_no
@@ -266,9 +356,6 @@ def game_main(patch_mapping,risk_mapping):
         current_patch_level+=random_no
         if current_patch_level>max_patch_level:
             current_patch_level=max_patch_level
-
-        
-
         round+=1
     return {"win":True,"rounds":30}
 
@@ -308,11 +395,11 @@ def risk_detail_gen(percentile): #risk dict make
     column_list=["av","ac","pr","cia","gs"]
     risk_dict={}
     dang_sum=0
-    for i in range(4):
+    for i in range(len(column_list)-1):
         dang=risk_dang_gen(percentile)
         dang_sum+=dang
         risk_dict[column_list[i]]=dang
-    risk_dict["general_danger"]=round(dang_sum/4)
+    risk_dict["gs"]=round(dang_sum/4)
     return risk_dict
 
 def risk_dang_gen(percentile): #random risk dangerous
@@ -351,20 +438,38 @@ def risk_dang_gen(percentile): #random risk dangerous
     else:
         return 4
 
-def risk_round(found_risks,rm): #punish when risk is on
-    stacks=0
-    punishment_ratio=100
+def risk_round(found_risks,rm,sec_label,round_ratio,risk_detail_array): #punish when risk is on
+    punishment_ratio=500
+    punishment=0 #no triggered
+    if sec_label=="Low":
+        percentile=50*round_ratio
+    elif sec_label=="Medium":
+        percentile=30*round_ratio  
+    elif sec_label=="High":
+        percentile=15*round_ratio  
+    elif sec_label=="Excellent":
+        percentile=5*round_ratio   
+
     for risk in found_risks:
-        if randomize(10)==True:
+        gs=risk_detail_array[int(risk)-1]["gs"]
+        if gs==1:
+            another_percentile=5*round_ratio
+        elif gs==2:
+            another_percentile=15*round_ratio  
+        elif gs==3:
+            another_percentile=30*round_ratio  
+        elif gs==4:
+            another_percentile=50*round_ratio   
+        
+        if randomize(round(percentile+another_percentile))==True:
             chosen=random.choice(rm[int(risk)-1]["events"])
-            random_times=random.randint(1,10)
-            punishment=random_times*punishment_ratio
+            punishment=gs*punishment_ratio
             print("The event {} has triggered".format(chosen))
             print(str(punishment),"has been charged as punishment")
-            stacks+=punishment
-    return stacks
+            break
+    return punishment
 
-def scheduled_task_func(waiting_task_array,db_array,tested_version):
+def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict):
     trash_task_array=[] # prevent bug
     print("~ Your schedualed tasks ~")
     for task in waiting_task_array: ###do schedualed task
@@ -397,6 +502,16 @@ def scheduled_task_func(waiting_task_array,db_array,tested_version):
             if task["function"]==7:
                 db_array[task["db"]-1].size=task["parameter"] 
                 print("Task : database {} upgraded to {} size !".format(task["db"],size_converter(task["parameter"])))
+            if task["function"]==8:
+                for db in db_array:
+                    db.hashing=task["parameter"]
+                print("Task : database {} hashing changed to {} !".format(task["db"],task["parameter"]))
+            if task["function"]==9:
+                asset_dict["fw"]="Working"
+                print("Task : Firewall has been built ! ")
+            if task["function"]==10:
+                asset_dict["dmz"]="Working"
+                print("Task : Firewall has been built ! ")
             trash_task_array.append(task)
         else:
             print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
@@ -404,8 +519,49 @@ def scheduled_task_func(waiting_task_array,db_array,tested_version):
     waiting_task_array=[task for task in waiting_task_array if task not in trash_task_array]
     return waiting_task_array
 
-def sec_level_func():
-    print("xd")
+def ss_level_func(db_array,round_ratio):
+    size=0
+    for db in db_array:
+        size+=db.size
+    sample=round_ratio*18
+    if size <sample/4:
+        ratio=0.3
+        comment="Very unstable"
+    elif size <sample/2:
+        ratio=0.6
+        comment="Unstable"
+    else:
+        ratio=1
+        comment="Stable"
+    return {"ratio":ratio,"comment":comment}
+
+
+def sec_level_func(found_risks,asset_dict,db_array):
+    total_score=0
+    
+    asset_score=0
+    if asset_dict["fw"]=="working":
+        asset_score=12.5
+        if asset_dict["dmz"]=="working":
+            asset_score*=2
+
+    risk_sc_ratio= -25
+    risk_score = (len(found_risks)-1) * risk_sc_ratio
+    
+    encrypt_score=0
+    for db in db_array:
+        if db.encryption=="AES128":
+            encrypt_score+=6.25
+        elif db.encryption=="AES256":
+            encrypt_score+=12.5
+
+    hashing_score=0
+    if db_array[0].hashing=="MD5":
+        hashing_score=6.25
+    elif db_array[0].hashing=="MD5":
+        hashing_score=12.5
+    total_score=asset_score+risk_score+encrypt_score+hashing_score
+    return total_score
 
 def show_sec_level(security_level):
     if security_level<25:

@@ -1,15 +1,20 @@
 1: 
 inspect db
-2:inspect risk
+
+2:
+inspect risk
+
 3:
 test certain patch
 each testing : 1000
 1 round 
+
 4:
 patching
 2000
 2 round auto
 3 rounds manual
+
 5:
 split 
 1500 per duty
@@ -17,18 +22,39 @@ split
 userpii
 2nd name
 3d name
+
 6:
 encrypt
+cost 1500
 AES128 1 round
 AES256 2 round
 
 7:
 upgrade db 
 1 for main when no split
-
 upgrade size
 exit
 m 1500
 l 3000
 xl 5000
 2 round
+
+8:
+hashing 
+cost 1500
+md5 1 round
+sha2
+
+9:
+fw
+y for yes
+n for no
+1 round
+$3000
+
+10:
+dmz
+y for yes
+n for no
+1 round
+$1000
