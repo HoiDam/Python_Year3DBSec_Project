@@ -7,7 +7,7 @@ import pandas as pd
 from tabulate import tabulate # pretty print
 
 class database:
-    def __init__(self,version,duty,name="Database",size="s",encryption="N/A"):
+    def __init__(self,version,duty,name="Database",size=1,encryption="N/A"):
         
         self.activate="Working"
         self.name=name
@@ -19,7 +19,7 @@ class database:
     def print_detail(self):
         print("\n~",self.name,"~")
         print("Service : ", str(self.activate))
-        print("Size : ",self.size)
+        print("Size : ",size_converter(self.size))
         print("Current Version : " ,self.version) 
         print("Encryption : ",self.encryption)
         print("Duty : " ,self.duty)
@@ -65,7 +65,7 @@ def game_main(patch_mapping,risk_mapping):
            
 
         print("\n-------\nRounds : ", round ,"/",total_round) #show current round
-        scheduled_task_func(waiting_task_array,db_array,tested_version) #check scheduled
+        waiting_task_array=scheduled_task_func(waiting_task_array,db_array,tested_version) #check scheduled
         while True: # round loop
             
             if skip==False:
@@ -73,6 +73,7 @@ def game_main(patch_mapping,risk_mapping):
                 for db in db_array:
                     db.print_detail()
                 print("\n~ General Information ~")
+                print("Security :",show_sec_level(security_level))
                 found_risks=current_threat(current_risk_level,patch_mapping,int(db_array[0].version))
                 print("Current found risks : ["+",".join(found_risks)+"]")
                 ava_patches=current_ava_patches(current_patch_level,int(db_array[0].version))
@@ -234,7 +235,7 @@ def game_main(patch_mapping,risk_mapping):
                         break
                     if check_enough_fund(size_cost,funds)==True:
                         funds-=size_cost
-                        task={"function":int(msg),"parameter":wish_size,"livetime":int(2),"func_name":"Upgrading","db":int(wish_db)}
+                        task={"function":int(msg),"parameter":size_converter(wish_size),"livetime":int(2),"func_name":"Upgrading","db":int(wish_db)}
                         waiting_task_array.append(task)
                         print("Database {} ".format(wish_db)+task_alert.format(task["func_name"],task["livetime"]))                            
                         break                        
@@ -250,7 +251,7 @@ def game_main(patch_mapping,risk_mapping):
                 times = len(db.duty)
                 overload =4-len(waiting_task_array)
                 if overload<0:overload=0
-                profits=times*size_fund_func(db.size)* (overload/max_task_profit)
+                profits=times*size_fund_func(size_converter(db.size))* (overload/max_task_profit)
                 funds+=profits
         print("Profits from Food Delievery app :+",profits)
         if overload<2:
@@ -272,7 +273,7 @@ def game_main(patch_mapping,risk_mapping):
     return {"win":True,"rounds":30}
 
 def show_userManual():
-    options=[{"key":"1","notices":"Show which risks could be deal with your chosen version"},{"key":"2","notices":"Upgrade db"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"},{"key":"5","notices":"split db"}]
+    options=[{"key":"1","notices":"Inspect Version Report"},{"key":"2","notices":"Inspect Risk Report"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"},{"key":"5","notices":"split db"},{"key":"6","notices":"encrypt db"},{"key":"7","notices":"Upgrade db"}]
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True
@@ -283,6 +284,25 @@ def randomize(percent):
         return True
     else:
         return False
+
+def size_converter(para):
+    para=str(para)
+    if para=="1":
+        return "s"
+    elif para=="2":
+        return "m"
+    elif para=="3":
+        return "l"
+    elif para=="4":
+        return "xl"
+    elif para=="s":
+        return 1
+    elif para=="m":
+        return 2
+    elif para=="l":
+        return 3
+    elif para=="xl":
+        return 4
 
 def risk_detail_gen(percentile): #risk dict make
     column_list=["av","ac","pr","cia","gs"]
@@ -376,12 +396,16 @@ def scheduled_task_func(waiting_task_array,db_array,tested_version):
                 print("Task : database {} encryption changed to {} !".format(task["db"],task["parameter"]))
             if task["function"]==7:
                 db_array[task["db"]-1].size=task["parameter"] 
-                print("Task : database {} upgraded to {} size !".format(task["db"],task["parameter"]))
+                print("Task : database {} upgraded to {} size !".format(task["db"],size_converter(task["parameter"])))
             trash_task_array.append(task)
         else:
             print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
     print("~          ~            ~")
     waiting_task_array=[task for task in waiting_task_array if task not in trash_task_array]
+    return waiting_task_array
+
+def sec_level_func():
+    print("xd")
 
 def show_sec_level(security_level):
     if security_level<25:
@@ -393,6 +417,7 @@ def show_sec_level(security_level):
     elif security_level<100:
         label="Excellent"    
     return label
+    
 def current_threat(crl,pm,v): #show current risks 
     version_risk_array=pm[v-1]["risk"]
     risk_array=[]
