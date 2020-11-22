@@ -1,15 +1,6 @@
 1: 
-show db patch can deal with wt risk
-2:
-upgrade db 
-1 for main when no split
-
-upgrade size
-exit
-m 1500
-l 3000
-xl 5000
-2 round
+inspect db
+2:inspect risk
 3:
 test certain patch
 each testing : 1000
@@ -30,4 +21,14 @@ userpii
 encrypt
 AES128 1 round
 AES256 2 round
-7:inspect risk
+
+7:
+upgrade db 
+1 for main when no split
+
+upgrade size
+exit
+m 1500
+l 3000
+xl 5000
+2 round
