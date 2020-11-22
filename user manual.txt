@@ -58,3 +58,6 @@ y for yes
 n for no
 1 round
 $1000
+
+11.
+hire

@@ -43,7 +43,10 @@ def game_main(patch_mapping,risk_mapping):
     end_game=False
         
     waiting_task_array=[] #core array
-    accident_array=[] #store accidents
+    accident_array=[\
+        {"name":"data_breach","trigger":"round","start_round":round(0.3*total_round),"max_livetime":5,"description":"Data breach","activate":False,"punishment":500},\
+        {"name":"insider_attack","trigger":"nan"}\
+        ] #store accidents
 
     max_task_profit=4 # if there is 5 task no profit as whole db is repairing
 
@@ -55,6 +58,12 @@ def game_main(patch_mapping,risk_mapping):
     db=database("1",["UserPII","OrderDetails","PartnerInfo"] )
     db_array.append(db)
     asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
+
+    available_role=["SecAdmin","BackupAdmin"]
+    recruit_array=[{"name":"richard","power":"","hired":False,"op":0},\
+        {"name":"bris","power":"","hired":False,"op":0},\
+        {"name":"alvin","power":"","hired":False,"op":0}\
+        ]
 
     while round<=total_round: #whole game loop
 
@@ -182,7 +191,7 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="6":
                 encrypt_cost=1500
                 while True:
-                    wish_db=int(input("Which db you want to encrypt(Type 0 to exit this choice)?"))
+                    wish_db=str(input("Which db you want to encrypt(Type 0 to exit this choice)?"))
                     if str(wish_db)=="0":
                         skip=True
                         break
