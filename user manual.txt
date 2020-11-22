@@ -61,3 +61,8 @@ $1000
 
 11.
 hire
+each 2000 instant hire
+
+12.
+databreaching investigate 
+500 1 round have report 

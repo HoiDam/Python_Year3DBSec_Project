@@ -25,11 +25,12 @@ class database:
         print("Hashing for Password :",self.hashing)
         print("Duty : " ,self.duty)
 
+
 def game_main(patch_mapping,risk_mapping):
     
     # print(patch_mapping)
     # print(risk_mapping)
-    funds=100 #initial funds
+    funds=10000 #initial funds
     round=1 #initial round
     total_round=30 #default total round
     current_risk_level=1 #risk level
@@ -44,8 +45,8 @@ def game_main(patch_mapping,risk_mapping):
         
     waiting_task_array=[] #core array
     accident_array=[\
-        {"name":"data_breach","trigger":"round","start_round":round(0.3*total_round),"max_livetime":5,"description":"Data breach","activate":False,"punishment":500},\
-        {"name":"insider_attack","trigger":"nan"}\
+        {"name":"data_breach","trigger":"round","start_round":int(0.3*total_round),"max_livetime":6,"description":"Data breach","current_livetime":0},\
+        {"name":"insider_attack","trigger":"round","max_livetime":4,"description":"Insider Attack"}\
         ] #store accidents
 
     max_task_profit=4 # if there is 5 task no profit as whole db is repairing
@@ -59,15 +60,20 @@ def game_main(patch_mapping,risk_mapping):
     db_array.append(db)
     asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
 
-    available_role=["SecAdmin","BackupAdmin"]
-    recruit_array=[{"name":"richard","power":"","hired":False,"op":0},\
-        {"name":"bris","power":"","hired":False,"op":0},\
-        {"name":"alvin","power":"","hired":False,"op":0}\
+    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"BackupAdmin","ownedby":"N/A"},{"name":"AccessAdmin","ownedby":"N/A"}]
+ 
+    times_assign = 1 # indicate first time
+    recruit_array=[{"name":"richard","power":[],"hired":False,"op":0},\
+        {"name":"bris","power":[],"hired":False,"op":0},\
+        {"name":"alvin","power":[],"hired":False,"op":0}\
         ]
 
     while round<=total_round: #whole game loop
 
         skip=False #cause new round no skip info
+        accident_array,recruit_array,end_game,reason=accid_event_checker(accident_array,round,db_array,recruit_array)
+        for r in reason:
+            print(r)
         if end_game==True or funds<0: #instant die
             return {"win":False,"rounds":round,"funds":funds}
 
@@ -75,19 +81,20 @@ def game_main(patch_mapping,risk_mapping):
         for i in range(current_risk_level-len(risk_detail_array)):
             risk_detail_array.append(risk_detail_gen(round_ratio))
            
-
+        
         print("\n-------\nRounds : ", round ,"/",total_round) #show current round
-        waiting_task_array=scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict) #check scheduled
+        waiting_task_array,accident_array,funds=scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict,accident_array,funds) #check scheduled
         while True: # round loop
             
             if skip==False:
                 print("Funds : ",funds)
                 for db in db_array:
                     db.print_detail()
+                recruit_detail(recruit_array)
                 print("\n~ General Information ~")
                 system_statb_level=ss_level_func(db_array,round_ratio)
                 print(">> Whole System is {} <<".format(system_statb_level["comment"]))
-                security_level=sec_level_func(found_risks,asset_dict,db_array)
+                security_level=sec_level_func(found_risks,asset_dict,db_array,available_role)
                 # print(security_level)
                 sec_label=show_sec_level(security_level)
                 print("External Security :",sec_label)
@@ -100,7 +107,8 @@ def game_main(patch_mapping,risk_mapping):
                 if (asset_dict["fw"]=="Working"): #ensure
                     print("Demilitarized zone :",asset_dict["dmz"])
             skip=False    
-                
+            
+            print("\n----------------------------")#split
             for i in range(len(options)):
                 print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))   
             msg=str(input("Command :"))
@@ -339,6 +347,100 @@ def game_main(patch_mapping,risk_mapping):
                         break
                     else:
                         print("Invalid Input") 
+            elif msg=="11":
+                hire_cost=2000
+                name_array=[]
+                for recruit in recruit_array:
+                    name_array.append(recruit["name"])
+                while True:
+                    wish_hire=str(input("Who do you want to hire(Type 0 to exit this choice) ?"))
+                    if wish_hire in name_array:
+                        if recruit_array[name_array.index(wish_hire)]["hired"]==False:
+                            if check_enough_fund(hire_cost,funds)==True:
+                                funds-=hire_cost
+                                recruit_array[name_array.index(wish_hire)]["hired"]=True
+                                ar_array=[]
+                                done=False # for Q2
+                                for i in available_role:
+                                    ar_array.append(i["name"])
+                                if times_assign==1:                                    
+                                    while len(ar_array)>0:
+                                        print("Currently role assignment: ")
+                                        assigned_table(available_role)
+                                        wish_role=str(input("Which role you want to add for him(Can be multiple | Type 0 to exit)?"))
+                                        
+                                        if wish_role in ar_array:
+                                            for j in available_role:
+                                                if wish_role==j["name"]:
+                                                    j["ownedby"]=wish_hire #success
+                                                    ar_array.remove(wish_role)
+                                        elif wish_role=="0":
+                                            if len(ar_array)==3:
+                                                print("You have to at least add one role for him!")
+                                            else:
+                                                break
+                                        else:
+                                            print("Invalid Input") 
+                                    times_assign=2
+                                elif times_assign==2:                                    
+                                    while done==False:
+                                        print("Currently role assignment: ")
+                                        assigned_table(available_role)
+                                        wish_role=str(input("Which role you want to add for him?"))
+                                                                            
+                                        if wish_role in ar_array:
+                                            for j in available_role:
+                                                if wish_role==j["name"]:
+                                                    j["ownedby"]=wish_hire #success
+                                                    ar_array.remove(wish_role)
+                                                    done=True
+                                                    break
+                                        else:
+                                            print("Invalid Input") 
+                                    times_assign=3
+                                elif times_assign==3:                                    
+                                    
+                                    for i in available_role:
+                                        if i["ownedby"]=="N/A":
+                                            i["ownedby"]=wish_hire
+                                            
+                                    if available_role[0]["ownedby"]==available_role[1]["ownedby"]:
+                                        available_role[0]["ownedby"]=wish_hire
+                                    elif available_role[0]["ownedby"]==available_role[2]["ownedby"]:
+                                        available_role[0]["ownedby"]=wish_hire
+                                    elif available_role[1]["ownedby"]==available_role[2]["ownedby"]:
+                                        available_role[1]["ownedby"]=wish_hire
+
+                                recruit_array=update_role_table(available_role,recruit_array)
+                                break
+                        else:
+                            print("{} has already been hired!".format(wish_hire))
+                    elif wish_hire=="0":
+                        skip=True
+                        break
+                    else:
+                        print("Invalid Input")
+            elif msg=="12":
+                datain_cost=500
+                while True:
+                    ans=str(input("Are you do a quick data breaching investagation(If data breached , do fix automatically | Type \"n\" to quit) ?"))
+                    if ans=="y":
+                        if check_dup_task(int(msg),ans,waiting_task_array,-1)==True:
+                            print("You have scheduled this task before!")
+                            skip=True
+                            break
+                        if check_enough_fund(datain_cost,funds)==True:
+                            funds-=datain_cost
+                            task={"function":int(msg),"parameter":ans,"livetime":1,"func_name":"Data breaching investagation"}
+                            waiting_task_array.append(task) #success
+                            print(task_alert.format(task["func_name"],task["livetime"]))
+                            break
+                    elif ans=="n":
+                        skip=True
+                        break
+                    else:
+                        print("Invalid Input")
+
             else:
                 skip=True
                 print("Invalid Command. Please refer to user manual")
@@ -488,7 +590,7 @@ def risk_round(found_risks,rm,sec_label,round_ratio,risk_detail_array): #punish 
                 break
     return {"punishment":punishment,"instant_lose":instant_lose}
 
-def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict):
+def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict,accident_array,funds):
     trash_task_array=[] # prevent bug
     print("~ Your schedualed tasks ~")
     for task in waiting_task_array: ###do schedualed task
@@ -531,12 +633,22 @@ def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict):
             if task["function"]==10:
                 asset_dict["dmz"]="Working"
                 print("Task : Firewall has been built ! ")
+            if task["function"]==12:
+                for accid in accident_array:
+                    if accid["name"]=="data_breach":
+                        if accid["current_livetime"]==0:
+                            print("No evidence support that data breached ")
+                        else:
+                            accid["current_livetime"]=0
+                            funds-=50
+                            print("Data breached. \n However we have extent of breach identifying after first discovery.\n Also we have isolated the affected server immediately. \n The bad effect is not that big.\n $500 was punished by Government !")
+                
             trash_task_array.append(task)
         else:
             print("Task : {} {} has {} rounds remaining".format(task["func_name"],task["parameter"],task["livetime"]))
     print("~          ~            ~")
     waiting_task_array=[task for task in waiting_task_array if task not in trash_task_array]
-    return waiting_task_array
+    return waiting_task_array,accident_array,funds
 
 def ss_level_func(db_array,round_ratio):
     size=0
@@ -554,7 +666,7 @@ def ss_level_func(db_array,round_ratio):
         comment="Stable"
     return {"ratio":ratio,"comment":comment}
 
-def sec_level_func(found_risks,asset_dict,db_array):
+def sec_level_func(found_risks,asset_dict,db_array,available_role):
     total_score=0
     
     asset_score=0
@@ -578,7 +690,14 @@ def sec_level_func(found_risks,asset_dict,db_array):
         hashing_score=6.25
     elif db_array[0].hashing=="MD5":
         hashing_score=12.5
-    total_score=asset_score+risk_score+encrypt_score+hashing_score
+    
+    role_score=0
+    for role in available_role:
+        if role["ownedby"]!="N/A":
+            role_score+=10
+    
+    total_score=asset_score+risk_score+encrypt_score+hashing_score+role_score
+    
     return total_score
 
 def show_sec_level(security_level):
@@ -634,6 +753,53 @@ def check_dup_task(function,parameter,wta,db): #check duplicate scheduled task
             if task["function"]==function and task["parameter"]==parameter and task["db"]==db:
                 return True # duplicated found
         return False
+
+def recruit_detail(recruit_array):
+    print("\nRecruiting Information")
+    headers=["Name","Roles","Hired"]
+    row_data=[]
+    for recruit in recruit_array:
+        data=[]
+        for i in recruit:
+            if i != "op":
+                data.append(recruit[i])
+        row_data.append(data)  
+    df=pd.DataFrame(data = row_data, columns= headers)
+    print(tabulate(df, headers='keys', tablefmt='psql', showindex=False)) #pretty print
+
+def assigned_table(available_role):
+    for role in available_role:
+        print("{} Role is assigned to {}".format(role["name"],role["ownedby"]))
+
+def update_role_table(available_role,recruit_array):
+    for recruit in recruit_array:
+
+        recruit["power"]=[]
+        for role in available_role:
+            if recruit["name"]==role["ownedby"]:
+                recruit["power"].append(role["name"])
+    return recruit_array
+
+def accid_event_checker(accident_array,round,db_array,recruit_array):
+    instant_lose=False
+    reason=[]
+    for acc in accident_array:
+        if acc["name"]=="data_breach" and round>= acc["start_round"] and db_array[0].hashing=="N/A":
+            acc["current_livetime"]+=1
+            if acc["current_livetime"]==acc["max_livetime"]:
+                instant_lose=True
+                reason.append("Data breached for long time but you didnt invest and fix it.")   
+        if acc["name"]=="insider_attack":
+            for recruit in recruit_array:
+                if len(recruit["power"])==3:
+                    recruit["op"]+=1
+                else:
+                    recruit["op"]=0
+                if recruit["op"]==acc["max_livetime"]:    
+                    instant_lose=True
+                    reason.append("{} has owned too much power for a long time.{} initated insider attack".format(recruit["name"],recruit["name"]))  
+
+    return accident_array,recruit_array,instant_lose,reason
 
 def user_1_func(pm,ava_patches): #show patch risk mapping NOT TASK
     
