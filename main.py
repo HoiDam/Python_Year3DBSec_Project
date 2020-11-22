@@ -29,7 +29,7 @@ def game_main(patch_mapping,risk_mapping):
     
     # print(patch_mapping)
     # print(risk_mapping)
-    funds=10000 #initial funds
+    funds=100 #initial funds
     round=1 #initial round
     total_round=30 #default total round
     current_risk_level=1 #risk level
@@ -60,7 +60,7 @@ def game_main(patch_mapping,risk_mapping):
 
         skip=False #cause new round no skip info
         if end_game==True or funds<0: #instant die
-            return {"win":False,"rounds":round}
+            return {"win":False,"rounds":round,"funds":funds}
 
         round_ratio=round/total_round #INDICATE 0.xx~1
         for i in range(current_risk_level-len(risk_detail_array)):
@@ -346,7 +346,11 @@ def game_main(patch_mapping,risk_mapping):
         print("Profits from Food Delievery app :+",profits)
         if overload<2:
             print("Alert! Too many scheduled tasks will cause the app could not work for a certain time.")  
-        funds-=risk_round(found_risks,risk_mapping,sec_label,round_ratio,risk_detail_array)
+        risk_result=risk_round(found_risks,risk_mapping,sec_label,round_ratio,risk_detail_array)
+        if risk_result["instant_lose"]==False:
+            funds-=risk_result["punishment"]
+        elif risk_result["instant_lose"]==True:
+            end_game=True
 
         random_no=random.randint(0,1)
         current_risk_level+=random_no
@@ -441,6 +445,7 @@ def risk_dang_gen(percentile): #random risk dangerous
 def risk_round(found_risks,rm,sec_label,round_ratio,risk_detail_array): #punish when risk is on
     punishment_ratio=500
     punishment=0 #no triggered
+    instant_lose=False
     if sec_label=="Low":
         percentile=50*round_ratio
     elif sec_label=="Medium":
@@ -463,11 +468,16 @@ def risk_round(found_risks,rm,sec_label,round_ratio,risk_detail_array): #punish 
         
         if randomize(round(percentile+another_percentile))==True:
             chosen=random.choice(rm[int(risk)-1]["events"])
-            punishment=gs*punishment_ratio
             print("The event {} has triggered".format(chosen))
-            print(str(punishment),"has been charged as punishment")
-            break
-    return punishment
+            if randomize(round(percentile+another_percentile))==True:
+                print("Unfortunately this event is lethal and your company collapsed. \nYou Lose . Enter \"e\" to continue")
+                instant_lose==True
+                break
+            else:    
+                punishment=gs*punishment_ratio
+                print(str(punishment),"has been charged as punishment")
+                break
+    return {"punishment":punishment,"instant_lose":instant_lose}
 
 def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict):
     trash_task_array=[] # prevent bug
@@ -534,7 +544,6 @@ def ss_level_func(db_array,round_ratio):
         ratio=1
         comment="Stable"
     return {"ratio":ratio,"comment":comment}
-
 
 def sec_level_func(found_risks,asset_dict,db_array):
     total_score=0
@@ -657,11 +666,14 @@ def user_2_func(found_risks,risk_detail_array):
     return True
 
 
-def game_end(win,rounds):
+def game_end(win,rounds,funds):
+    print(" ~ END GAME RESULT ~")
     if win==True:
         print("Congrats You Won !")
+        
     else : print ("You lose at {} round . Better luck next time !".format(rounds))
-
+    print("Your final score(funds) :",funds)
+    input("Press any key to play again !")
 while True:
     print("Database Game\nEnter \" 1 \" Start\nEnter \" 2 \" Exit")
     msg=int(input())
@@ -672,7 +684,7 @@ while True:
         with open('risk_mapping.json') as jf2:
             risk_mapping=json.load(jf2)
         stats=game_main(patch_mapping,risk_mapping)
-        game_end(stats["win"],stats["rounds"])
+        game_end(stats["win"],stats["rounds"],stats["funds"])
     elif msg==2:
         break
     
