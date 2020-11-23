@@ -203,7 +203,7 @@ def game_main(patch_mapping,risk_mapping):
                     if str(wish_db)=="0":
                         skip=True
                         break
-                    elif wish_db>len(db_array) or wish_db<=0:
+                    elif int(wish_db)>len(db_array) or int(wish_db)<=0:
                         print("Invalid Input")
                         continue
                     elif db_array[int(wish_db)-1].encryption == "AES256":
