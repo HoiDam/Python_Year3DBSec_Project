@@ -59,11 +59,7 @@ def game_main(patch_mapping,risk_mapping):
     db_array.append(db)
     asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
 
-<<<<<<< HEAD
     available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"BackupAdmin","ownedby":"N/A","triggered":False,"protecting":False},{"name":"AccessAdmin","ownedby":"N/A"}]
-=======
-    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"Back-end Admin","ownedby":"N/A"},{"name":"AccessAdmin","ownedby":"N/A"}]
->>>>>>> fd970f243829d4d8bfd76a678d55247da0748c64
  
     times_assign = 1 # indicate first time
     recruit_array=[{"name":"Richard","power":[],"hired":False,"op":0},\
@@ -489,7 +485,13 @@ def game_main(patch_mapping,risk_mapping):
     return {"win":True,"rounds":30}
 
 def show_userManual():
-    options=[{"key":"1","notices":"Inspect Version Report"},{"key":"2","notices":"Inspect Vulnerability Report"},{"key":"3","notices":"Test for the version of database"},{"key":"4","notices":"Patch the database"},{"key":"5","notices":"Split the duty to different databases"},{"key":"6","notices":"Encrypt data in database"},{"key":"7","notices":"Upgrade hardware of database"}]
+    options=[{"key":"1","notices":"Inspect Version Report"},{"key":"2","notices":"Inspect Vulnerability Report"},\
+        {"key":"3","notices":"Test for the version of database"},{"key":"4","notices":"Patch the database"},\
+        {"key":"5","notices":"Split the duty to different databases"},{"key":"6","notices":"Encrypt data in database"},\
+        {"key":"7","notices":"Upgrade hardware of database"},{"key":"8","notices":"Hashing password for database"},\
+        {"key":"9","notices":"Install Firewall"},{"key":"10","notices":"Apply Demilitarized zone"},\
+        {"key":"11","notices":"Hire recruit"},{"key":"12","notices":"Do data breaching investigation"},\
+        ]
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True
