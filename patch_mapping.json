@@ -1,12 +1,12 @@
 [
     {
-        "patch": 1,
+        "patch": "Critical Patch Update - July 2018",
         "risk": [
             1
         ]
     },
     {
-        "patch": 2,
+        "patch": "Critical Patch Update - October 2018",
         "risk": [
             1,
             2,
