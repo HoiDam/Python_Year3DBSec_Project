@@ -1,7 +1,6 @@
 # TO DO Security level punishment + inspect risk 
 import json
 import os
-import numpy as np
 import random
 import pandas as pd
 from tabulate import tabulate # pretty print
@@ -51,7 +50,7 @@ def game_main(patch_mapping,risk_mapping):
 
     max_task_profit=4 # if there is 5 task no profit as whole db is repairing
 
-    options=[{"key":"e","notices":"Turn to go to next round."},{"key":"n","notices":"Show User Manual."}] #set options
+    options=[{"key":"e","notices":"Continue to next round."},{"key":"n","notices":"Show User Manual."}] #set options
     task_alert="Task {} has been scheduled . {} rounds after will be done" #task template 
     split_counter=0 #to control user do not split more than 3
 
@@ -60,12 +59,12 @@ def game_main(patch_mapping,risk_mapping):
     db_array.append(db)
     asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
 
-    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"BackupAdmin","ownedby":"N/A"},{"name":"AccessAdmin","ownedby":"N/A"}]
+    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"Back-end Admin","ownedby":"N/A"},{"name":"AccessAdmin","ownedby":"N/A"}]
  
     times_assign = 1 # indicate first time
-    recruit_array=[{"name":"richard","power":[],"hired":False,"op":0},\
-        {"name":"bris","power":[],"hired":False,"op":0},\
-        {"name":"alvin","power":[],"hired":False,"op":0}\
+    recruit_array=[{"name":"Richard","power":[],"hired":False,"op":0},\
+        {"name":"Boris","power":[],"hired":False,"op":0},\
+        {"name":"Alvin","power":[],"hired":False,"op":0}\
         ]
 
     while round<=total_round: #whole game loop
@@ -99,10 +98,10 @@ def game_main(patch_mapping,risk_mapping):
                 sec_label=show_sec_level(security_level)
                 print("External Security :",sec_label)
                 found_risks=current_threat(current_risk_level,patch_mapping,int(db_array[0].version))
-                print("Current found risks : ["+",".join(found_risks)+"]")
+                print("Current found vulnerabilities : ["+",".join(found_risks)+"]")
                 ava_patches=current_ava_patches(current_patch_level,int(db_array[0].version))
-                print("Current available versions : ["+",".join(ava_patches)+"]")
-                print("Current tested versions : ["+",".join(tested_version)+"]" )
+                print("Current available patch versions : ["+",".join(ava_patches)+"]")
+                print("Current tested patch versions : ["+",".join(tested_version)+"]" )
                 print("Firewall :",asset_dict["fw"])
                 if (asset_dict["fw"]=="Working"): #ensure
                     print("Demilitarized zone :",asset_dict["dmz"])
@@ -423,7 +422,7 @@ def game_main(patch_mapping,risk_mapping):
             elif msg=="12":
                 datain_cost=500
                 while True:
-                    ans=str(input("Are you do a quick data breaching investagation(If data breached , do fix automatically | Type \"n\" to quit) ?"))
+                    ans=str(input("Do you want to do a quick data breaching investigation(If there already has a breach, the process will do it automatically | Type \"n\" to quit) ?"))
                     if ans=="y":
                         if check_dup_task(int(msg),ans,waiting_task_array,-1)==True:
                             print("You have scheduled this task before!")
@@ -475,7 +474,7 @@ def game_main(patch_mapping,risk_mapping):
     return {"win":True,"rounds":30}
 
 def show_userManual():
-    options=[{"key":"1","notices":"Inspect Version Report"},{"key":"2","notices":"Inspect Risk Report"},{"key":"3","notices":"Test db version"},{"key":"4","notices":"Patch db"},{"key":"5","notices":"split db"},{"key":"6","notices":"encrypt db"},{"key":"7","notices":"Upgrade db"}]
+    options=[{"key":"1","notices":"Inspect Version Report"},{"key":"2","notices":"Inspect Vulnerability Report"},{"key":"3","notices":"Test for the version of database"},{"key":"4","notices":"Patch the database"},{"key":"5","notices":"Split the duty to different databases"},{"key":"6","notices":"Encrypt data in database"},{"key":"7","notices":"Upgrade hardware of database"}]
     for i in range(len(options)):
         print("Enter \"{}\" to {}".format(options[i]["key"],options[i]["notices"]))
     return True
@@ -819,11 +818,11 @@ def user_1_func(pm,ava_patches): #show patch risk mapping NOT TASK
 def user_2_func(found_risks,risk_detail_array):
     
     if len(found_risks)==0:
-        print("No Risk Currently Found")
+        print("No Vulnerability Currently Found")
     else:
         row_data=[]
-        headers=["Risk Name","Attack Vector","Attack Complex","Privileges Required","CIA","General Score"]
-        print("~     Risk Report     ~")
+        headers=["Vulnerability ID","Attack Vector","Attack Complex","Privileges Required","CIA","General Score"]
+        print("~     Vulnerability Report     ~")
         for i in range(int(found_risks[0])-1,int(found_risks[-1])):
             msg=[str(i+1)]
             for key in risk_detail_array[i]:
