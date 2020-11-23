@@ -618,10 +618,10 @@ def scheduled_task_func(waiting_task_array,db_array,tested_version,asset_dict,ac
                 db_array.append(database(db_array[0].version,[task["parameter"]],name="Database "+str(len(db_array)+1)))
                 print("Task : main database splited with seperate {} database !".format(task["parameter"]))
             if task["function"]==6:
-                db_array[task["db"]-1].encryption=task["parameter"]
+                db_array[int(task["db"])-1].encryption=task["parameter"]
                 print("Task : database {} encryption changed to {} !".format(task["db"],task["parameter"]))
             if task["function"]==7:
-                db_array[task["db"]-1].size=task["parameter"] 
+                db_array[int(task["db"])-1].size=task["parameter"] 
                 print("Task : database {} upgraded to {} size !".format(task["db"],size_converter(task["parameter"])))
             if task["function"]==8:
                 for db in db_array:
