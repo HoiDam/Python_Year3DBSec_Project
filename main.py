@@ -29,7 +29,7 @@ def game_main(patch_mapping,risk_mapping):
     
     # print(patch_mapping)
     # print(risk_mapping)
-    funds=10000 #initial funds
+    funds=2000 #initial funds
     round=1 #initial round
     total_round=30 #default total round
     current_risk_level=1 #risk level
@@ -746,13 +746,13 @@ def current_ava_patches(cpl,v):
 
 def size_fund_func(size): #add fund for each round size
     if size=="s":
-        return 100 
-    elif size=="m":
         return 300 
+    elif size=="m":
+        return 600 
     elif size=="l": #L 
-        return 700 
+        return 900 
     elif size=="xl":
-        return 1000 
+        return 1500 
 
 def check_enough_fund(cost,funds):
     if funds<cost:
