@@ -341,7 +341,7 @@ def game_main(patch_mapping,risk_mapping):
                             break
                         if check_enough_fund(build_cost,funds)==True:
                             funds-=build_cost
-                            task={"function":int(msg),"parameter":ans,"livetime":1,"func_name":"Firewall building"}
+                            task={"function":int(msg),"parameter":ans,"livetime":1,"func_name":"Demilitarized zone building"}
                             waiting_task_array.append(task) #success
                             print(task_alert.format(task["func_name"],task["livetime"]))
                             break
