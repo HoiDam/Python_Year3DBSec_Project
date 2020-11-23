@@ -62,6 +62,10 @@ $1000
 11.
 hire
 each 2000 instant hire
+first 2 ppl +security level
+access profit*1.5
+security *1.5
+backup lives=2
 
 12.
 databreaching investigate 

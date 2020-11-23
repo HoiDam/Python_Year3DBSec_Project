@@ -60,7 +60,7 @@ def game_main(patch_mapping,risk_mapping):
     db_array.append(db)
     asset_dict={"dmz":"N/A","fw":"N/A"} # dmz firewall
 
-    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"BackupAdmin","ownedby":"N/A"},{"name":"AccessAdmin","ownedby":"N/A"}]
+    available_role=[{"name":"SecAdmin","ownedby":"N/A"},{"name":"BackupAdmin","ownedby":"N/A","triggered":False,"protecting":False},{"name":"AccessAdmin","ownedby":"N/A"}]
  
     times_assign = 1 # indicate first time
     recruit_array=[{"name":"richard","power":[],"hired":False,"op":0},\
@@ -75,7 +75,11 @@ def game_main(patch_mapping,risk_mapping):
         for r in reason:
             print(r)
         if end_game==True or funds<0: #instant die
-            return {"win":False,"rounds":round,"funds":funds}
+            if available_role[1]["protecting"]==True and available_role[1]["triggered"]==False:
+                print("The issue is inevitable. However your backup save you a life. Next time you will not be that lucky!")
+                available_role[1]["triggered"]=True
+            else:
+                return {"win":False,"rounds":round,"funds":funds}
 
         round_ratio=round/total_round #INDICATE 0.xx~1
         for i in range(current_risk_level-len(risk_detail_array)):
@@ -446,7 +450,9 @@ def game_main(patch_mapping,risk_mapping):
                 print("Invalid Command. Please refer to user manual")
 
         print("\n~ End Round result ~")
-
+        if available_role[1]["ownedby"]!="N/A":
+            available_role[1]["triggered"]=True
+        
         for db in db_array:
             if db.activate=="Working":
                 times = len(db.duty)
@@ -454,7 +460,12 @@ def game_main(patch_mapping,risk_mapping):
                 if overload<0:overload=0
                 profits=times*size_fund_func(size_converter(db.size))* (overload/max_task_profit) *system_statb_level["ratio"]        # no. duty * size_earning * task load * system stability
                 funds+=profits
-        print("Profits from Food Delievery app :+",profits)
+        print("Profits from Food Delievery app :+{}".format(profits),end='')
+        if available_role[2]["ownedby"]!="N/A":
+            funds+=int(profits*0.5)
+            print(" X1.5 !")
+        else:
+            print("")
         if overload<2:
             print("Alert! Too many scheduled tasks will cause the app could not work for a certain time.")  
         risk_result=risk_round(found_risks,risk_mapping,sec_label,round_ratio,risk_detail_array)
@@ -692,11 +703,13 @@ def sec_level_func(found_risks,asset_dict,db_array,available_role):
         hashing_score=12.5
     
     role_score=0
+    multiple=1
     for role in available_role:
-        if role["ownedby"]!="N/A":
-            role_score+=10
-    
-    total_score=asset_score+risk_score+encrypt_score+hashing_score+role_score
+        if role["ownedby"]!="N/A" and role["name"]!="BackupAdmin":
+            role_score+=12.5
+            if role["name"]=="SecAdmin":
+                multiple=1.5
+    total_score=asset_score+risk_score+encrypt_score+hashing_score+role_score*multiple
     
     return total_score
 
